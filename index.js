@@ -1,12 +1,12 @@
 import express, { json } from 'express';
 import connectDB from './config/db.js'; 
-import userRoutes from './routes/user.routes.js';
+import customerRoutes from './routes/customer.routes.js';
 
 const app = express();
 const port = 3000;
 
 app.use(json());
-app.use('/api/users', userRoutes);
+app.use('/api/v1/customers', customerRoutes);
 
 connectDB().then(() => {
   app.listen(port, () => {
