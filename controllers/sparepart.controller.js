@@ -4,9 +4,17 @@ import Sparepart from "../models/sparepart.model.js";
 export async function getAllSpareparts(req, res) {
   try {
     const spareparts = await Sparepart.find();
-    res.status(200).json({ success: true, data: spareparts });
+    res.status(200).json({
+      code: 200,
+      message: "success",
+      data: spareparts
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      code: 500,
+      message: err.message,
+      data: []
+    });
   }
 }
 
@@ -15,9 +23,17 @@ export async function createSparepart(req, res) {
   try {
     const newSparepart = new Sparepart(req.body);
     await newSparepart.save();
-    res.status(201).json({ success: true, data: newSparepart });
+    res.status(201).json({
+      code: 201,
+      message: "success",
+      data: newSparepart
+    });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    res.status(400).json({
+      code: 400,
+      message: err.message,
+      data: []
+    });
   }
 }
 
@@ -27,16 +43,28 @@ export async function updateSparepart(req, res) {
   try {
     const updatedSparepart = await Sparepart.findByIdAndUpdate(id, req.body, {
       new: true,
-      runValidators: true,
+      runValidators: true
     });
 
     if (!updatedSparepart) {
-      return res.status(404).json({ success: false, error: "Sparepart not found" });
+      return res.status(404).json({
+        code: 404,
+        message: "Sparepart not found",
+        data: []
+      });
     }
 
-    res.json(updatedSparepart);
+    res.status(200).json({
+      code: 200,
+      message: "success",
+      data: updatedSparepart
+    });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    res.status(400).json({
+      code: 400,
+      message: err.message,
+      data: []
+    });
   }
 }
 
@@ -47,11 +75,23 @@ export async function deleteSparepart(req, res) {
     const deletedSparepart = await Sparepart.findByIdAndDelete(id);
 
     if (!deletedSparepart) {
-      return res.status(404).json({ success: false, error: "Sparepart not found" });
+      return res.status(404).json({
+        code: 404,
+        message: "Sparepart not found",
+        data: []
+      });
     }
 
-    res.json({ success: true, message: "Sparepart deleted successfully" });
+    res.status(200).json({
+      code: 200,
+      message: "Sparepart deleted successfully",
+      data: []
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      code: 500,
+      message: err.message,
+      data: []
+    });
   }
 }
