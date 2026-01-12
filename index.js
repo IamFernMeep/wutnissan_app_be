@@ -18,9 +18,9 @@ const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
   "http://localhost:4200",
-  "https://sunfirestore.com",
-  "https://www.sunfirestore.com",
-  "https://api.sunfirestore.com"
+  "https://wutnissandatagarage.com",
+  "https://www.wutnissandatagarage.com",
+  "https://api.wutnissandatagarage.com"
 ];
 
 app.use(cors({
