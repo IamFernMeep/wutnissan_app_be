@@ -1,0 +1,42 @@
+{
+    "code": 200,
+    "message": "success",
+    "data": [
+        {
+            "jobId": "WO-1024",
+            "customer": "คุณศิริพร",
+            "car": "Toyota Vios 1.5",
+            "registration": "กข 1234",
+            "status": "กำลังดำเนินการ",
+            "dueDate": "2025-08-17",
+            "total": 5600
+        },
+        {
+            "jobId": "WO-1025",
+            "customer": "คุณนฤมล",
+            "car": "Honda Civic 1.8",
+            "registration": "งจ 9988",
+            "status": "รออะไหล่",
+            "dueDate": "2025-08-17",
+            "total": 8900
+        },
+        {
+            "jobId": "WO-1026",
+            "customer": "คุณอนันต์",
+            "car": "Isuzu D-Max 3.0",
+            "registration": "ผศ 4521",
+            "status": "รอตรวจรับ",
+            "dueDate": "2025-08-16",
+            "total": 2300
+        },
+        {
+            "jobId": "WO-1027",
+            "customer": "คุณอดุลย์",
+            "car": "Mazda 2 1.5",
+            "registration": "ศค 8801",
+            "status": "เสร็จสิ้น",
+            "dueDate": "2025-08-15",
+            "total": 4200
+        }
+    ]
+}

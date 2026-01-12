@@ -1,0 +1,52 @@
+{
+    "code": 200,
+    "message": "success",
+    "data": [
+        {
+            "_id": "",
+            "jobId": "WO-1024",
+            "name": "วิทยา อินทร",
+            "phone": "0891112233",
+            "car": {
+                "registration": "กข1234เชียงใหม่",
+                "model": "Nissan Almera"
+            },
+            "parts": [
+                {
+                    "name": "น้ำมันเครื่องสังเคราะห์ 5W-30",
+                    "qty": 1,
+                    "unit": "ชิ้น",
+                    "price": 1200,
+                    "total": 1200
+                },
+                {
+                    "name": "กรองน้ำมันเครื่อง Toyota",
+                    "qty": 1,
+                    "unit": "ชิ้น",
+                    "price": 250,
+                    "total": 250
+                },
+                {
+                    "name": "ผ้าเบรกหน้า Brembo",
+                    "qty": 1,
+                    "unit": "ชิ้น",
+                    "price": 2200,
+                    "total": 2200
+                },
+                {
+                    "name": "กรองอากาศ Honda",
+                    "qty": 1,
+                    "unit": "ชิ้น",
+                    "price": 350,
+                    "total": 350,
+                    "note": ""
+                }
+            ],
+            "allTotal": 4000,
+            "costs": 1000,
+            "finalTotal": 5000,
+            "pickupDateTime": "2025-08-25T19:12",
+            "createdAt": "2025-08-24T12:12:49.175Z"
+        }
+    ]
+}

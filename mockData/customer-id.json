@@ -1,0 +1,25 @@
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "address": {
+      "province": "เชียงใหม่",
+      "district": "เมืองเชียงใหม่",
+      "subdistrict": "ศรีภูมิ",
+      "postalCode": "50200"
+    },
+    "car": {
+      "registration": "กข1234เชียงใหม่",
+      "model": "Nissan Almera",
+      "color": "น้ำเงิน",
+      "chassisNumber": "JN1ABC12Z0U001111",
+      "mileage": 45000
+    },
+    "_id": "789a1bcd1234abcd5678ef90",
+    "name": "วิทยา อินทร",
+    "phone": "0891112233",
+    "line": "@witaya",
+    "createdAt": "2025-07-19T09:56:26.305Z",
+    "__v": 0
+  }
+}
