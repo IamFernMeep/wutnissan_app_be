@@ -8,9 +8,9 @@ export const QuotationPart = {
     // =========================
     findByQuotationId: async (quotationId) => {
         const [rows] = await pool.execute(
-            `SELECT name, qty, unit, price, total, note
-             FROM quotation_parts
-             WHERE quotation_id = ?`,
+            `SELECT name, qty, unit, price, cost, total, note
+            FROM quotation_parts
+            WHERE quotation_id = ?`,
             [quotationId]
         );
         return rows;
@@ -20,23 +20,28 @@ export const QuotationPart = {
     // Create Part
     // =========================
     create: async (quotationId, part) => {
-        const total = (part.qty ?? 1) * (part.price ?? 0);
+        const qty = part.qty ?? 1;
+        const price = part.price ?? 0;
+        const cost = part.cost ?? 0;
+        const total = qty * price;
 
         await pool.execute(
             `INSERT INTO quotation_parts
-             (quotation_id, name, qty, unit, price, total, note)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (quotation_id, name, qty, unit, price, cost, total, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 quotationId,
                 part.name,
-                part.qty ?? 1,
+                qty,
                 part.unit ?? "ชิ้น",
-                part.price ?? 0,
+                price,
+                cost,
                 total,
                 part.note ?? ""
             ]
         );
     },
+
 
     // =========================
     // Delete Parts by Quotation ID
