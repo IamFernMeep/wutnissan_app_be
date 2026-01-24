@@ -281,14 +281,19 @@ export const Jobsheet = {
 
         const isNumber = /^\d+$/.test(String(idOrJobId));
 
-        const [result] = await pool.execute(
-            `UPDATE jobsheets
-             SET status = ?
-             WHERE ${isNumber ? "id = ?" : "job_id = ?"}`,
-            [status, idOrJobId]
-        );
+        const sql = `
+        UPDATE jobsheets
+        SET
+            status = ?,
+            due_date = CASE
+                WHEN ? = 'เสร็จสิ้น' THEN CURDATE()
+                ELSE due_date
+            END
+        WHERE ${isNumber ? "id = ?" : "job_id = ?"}
+    `;
 
-        if (result.affectedRows === 0) return null;
+        await pool.execute(sql, [status, status, idOrJobId]);
+
         return Jobsheet.findByIdOrJobId(idOrJobId);
     },
 
@@ -305,5 +310,53 @@ export const Jobsheet = {
         );
 
         return result.affectedRows > 0;
+    },
+
+
+    // =========================
+    // Get Today Pending Jobsheets (Timezone: Asia/Bangkok)
+    // =========================
+    findTodayPending: async () => {
+        const [rows] = await pool.execute(`
+        SELECT
+            id,
+            job_id,
+            customer_id,
+            customer_name,
+            status,
+            due_date,
+            pickup_datetime,
+            final_total,
+            CASE
+                WHEN TRIM(status) = 'เสร็จสิ้น' THEN 1
+                ELSE 0
+            END AS isCompleted
+        FROM jobsheets
+        WHERE
+            (
+                TRIM(status) != 'เสร็จสิ้น'
+            )
+            OR
+            (
+                TRIM(status) = 'เสร็จสิ้น'
+                AND (
+                    DATE(due_date) = CURDATE()
+                    OR DATE(pickup_datetime) = CURDATE()
+                )
+            )
+        ORDER BY
+            isCompleted ASC,
+            COALESCE(pickup_datetime, due_date, created_at) ASC;
+    `);
+
+        const result = [];
+        for (const row of rows) {
+            result.push(await toListDTO(row)); // 👈 สำคัญ
+        }
+
+        return {
+            total: result.length,
+            jobsheets: result
+        };
     }
 };

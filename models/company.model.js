@@ -23,9 +23,13 @@ export const Company = {
                 c.email,
                 c.fax
             FROM company c
-            LEFT JOIN provinces p ON p.name_en = c.province
-            LEFT JOIN districts d ON d.name_en = c.district
-            LEFT JOIN subdistricts s ON s.name_en = c.subdistrict
+            LEFT JOIN provinces p 
+                ON TRIM(p.name_th) = TRIM(c.province)
+            LEFT JOIN districts d 
+                ON TRIM(d.name_th) = TRIM(c.district)
+            LEFT JOIN subdistricts s 
+                ON TRIM(s.name_th) = TRIM(c.subdistrict)
+            ORDER BY c.id ASC
             LIMIT 1
         `);
 
@@ -33,23 +37,21 @@ export const Company = {
 
         const row = rows[0];
 
-        const {
-            addressDetail,
-            province,
-            district,
-            subdistrict,
-            postalCode,
-            ...company
-        } = row;
-
         return {
-            ...company,
+            id: row.id,
+            name: row.name,
+            phone1: row.phone1,
+            phone2: row.phone2,
+            tax_id: row.tax_id,
+            logo_url: row.logo_url,
+            email: row.email,
+            fax: row.fax,
             address: {
-                address: addressDetail,
-                province,
-                district,
-                subdistrict,
-                postalCode
+                address: row.addressDetail,
+                province: row.province,
+                district: row.district,
+                subdistrict: row.subdistrict,
+                postalCode: row.postalCode
             }
         };
     },
@@ -59,22 +61,25 @@ export const Company = {
     // =========================
     updateSingleton: async (data) => {
         const [result] = await pool.execute(
-            `UPDATE company
-             SET name = ?,
-                 address_detail = ?,
-                 province = ?,
-                 district = ?,
-                 subdistrict = ?,
-                 postal_code = ?,
-                 phone1 = ?,
-                 phone2 = ?,
-                 tax_id = ?,
-                 logo_url = ?,
-                 email = ?,
-                 fax = ?
-             WHERE id = 1`,
+            `
+            UPDATE company
+            SET
+                name = ?,
+                address_detail = ?,
+                province = ?,
+                district = ?,
+                subdistrict = ?,
+                postal_code = ?,
+                phone1 = ?,
+                phone2 = ?,
+                tax_id = ?,
+                logo_url = ?,
+                email = ?,
+                fax = ?
+            WHERE id = 1
+            `,
             [
-                data.name,
+                data.name ?? null,
                 data.address?.address ?? null,
                 data.address?.province ?? null,
                 data.address?.district ?? null,

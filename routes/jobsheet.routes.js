@@ -5,11 +5,13 @@ import {
     createJobsheet,
     updateJobsheet,
     deleteJobsheet,
-    updateJobsheetStatus
+    updateJobsheetStatus,
+    getTodayPending
 } from "../controllers/jobsheet.controller.js";
 
 const router = express.Router();
 
+router.get("/today/pending", getTodayPending);
 router.get("/", getListJobsheet);
 router.get("/:id", getJobsheetById);
 router.post("/", createJobsheet);

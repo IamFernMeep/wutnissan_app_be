@@ -33,6 +33,22 @@ export const Appointment = {
         return rows.map(toAppointmentDTO);
     },
 
+    findToday: async () => {
+        const [rows] = await pool.execute(
+            `
+      SELECT id, customer_name, customer_phone, issue, delivery_date
+      FROM appointments
+      WHERE DATE(delivery_date) = CURDATE()
+      ORDER BY delivery_date ASC
+      `
+        );
+
+        return {
+            total: rows.length,
+            appointments: rows
+        };
+    },
+
     findById: async (id) => {
         const [rows] = await pool.execute(
             `SELECT id, customer_name, customer_phone, issue, delivery_date
