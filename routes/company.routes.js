@@ -1,7 +1,7 @@
 // routes/company.route.js
 import { Router } from 'express';
 import { getCompany, updateCompany } from '../controllers/company.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
+import authMiddleware from '../middlewares/auth.middleware.js';
 
 const router = Router();
 

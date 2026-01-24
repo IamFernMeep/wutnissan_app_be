@@ -1,22 +1,28 @@
 // models/quotation_parts.model.js
-import connectDB from "../config/db.js";
+import pool from "../config/db.js";
 
 export const QuotationPart = {
+
+    // =========================
+    // Get Parts by Quotation ID
+    // =========================
     findByQuotationId: async (quotationId) => {
-        const conn = await connectDB();
-        const [rows] = await conn.execute(
-            `SELECT name, qty, unit, price, total, note 
-             FROM quotation_parts 
+        const [rows] = await pool.execute(
+            `SELECT name, qty, unit, price, total, note
+             FROM quotation_parts
              WHERE quotation_id = ?`,
             [quotationId]
         );
         return rows;
     },
 
+    // =========================
+    // Create Part
+    // =========================
     create: async (quotationId, part) => {
-        const conn = await connectDB();
         const total = (part.qty ?? 1) * (part.price ?? 0);
-        await conn.execute(
+
+        await pool.execute(
             `INSERT INTO quotation_parts
              (quotation_id, name, qty, unit, price, total, note)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -32,9 +38,11 @@ export const QuotationPart = {
         );
     },
 
+    // =========================
+    // Delete Parts by Quotation ID
+    // =========================
     deleteByQuotationId: async (quotationId) => {
-        const conn = await connectDB();
-        await conn.execute(
+        await pool.execute(
             `DELETE FROM quotation_parts WHERE quotation_id = ?`,
             [quotationId]
         );

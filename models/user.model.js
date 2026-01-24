@@ -1,23 +1,19 @@
-// models/user.model.js
-import connectDB from "../config/db.js";
+import pool from "../config/db.js";
 
 export const User = {
     findByUsername: async (username) => {
-        const conn = await connectDB();
-        const [rows] = await conn.execute(
-            `SELECT * FROM users WHERE username = ?`,
+        const [rows] = await pool.execute(
+            `SELECT * FROM users WHERE username = ? AND is_active = 1 LIMIT 1`,
             [username]
         );
-        console.log("DB query result:", rows);
-        return rows[0];
+        return rows[0] || null;
     },
 
-    create: async ({ username, password, role = "guest" }) => {
-        const conn = await connectDB();
-        const [result] = await conn.execute(
-            `INSERT INTO users (username, password, role) VALUES (?, ?, ?)`,
-            [username, password, role]
+    findById: async (id) => {
+        const [rows] = await pool.execute(
+            `SELECT id, username, role FROM users WHERE id = ? AND is_active = 1`,
+            [id]
         );
-        return { id: result.insertId, username, role };
+        return rows[0] || null;
     }
 };

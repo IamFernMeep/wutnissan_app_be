@@ -2,20 +2,25 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.route.js";
 import customerRoutes from "./routes/customer.routes.js";
 import companyRoutes from "./routes/company.routes.js";
 import jobsheetRoutes from "./routes/jobsheet.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import quotationRoutes from "./routes/quotation.routes.js";
-import locationRoute from "./routes/location.route.js";
-import partstockRoute from "./routes/partstock.routes.js";
+import locationRoutes from "./routes/location.route.js";
+import partstockRoutes from "./routes/partstock.routes.js";
+import reportRoutes from "./routes/report.routes.js";
+
+import authMiddleware from "./middlewares/auth.middleware.js";
 
 dotenv.config();
-const app = express();
-const PORT = process.env.PORT || 3000;
 
+const app = express();
+
+/* =========================
+   CORS
+========================= */
 const allowedOrigins = [
   "http://localhost:4200",
   "https://wutnissandatagarage.com",
@@ -24,33 +29,52 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
+  origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(null, false);
     }
   },
   credentials: true
 }));
 
-// middleware
+/* =========================
+   MIDDLEWARE
+========================= */
 app.use(express.json());
 
-app.use("/api/v1", locationRoute);
+/* =========================
+   PUBLIC ROUTES
+========================= */
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/customers", customerRoutes);
-app.use("/api/v1/company", companyRoutes);
-app.use("/api/v1/jobsheets", jobsheetRoutes);
-app.use("/api/v1/appointments", appointmentRoutes);
-app.use("/api/v1/quotations", quotationRoutes);
-app.use("/api/v1/partstocks", partstockRoute);
+app.use("/api/v1/location", locationRoutes);
 
-// connect DB + start server
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => console.error("❌ DB Connection Error:", err));
+/* =========================
+   PROTECTED ROUTES
+========================= */
+app.use("/api/v1/jobsheets", authMiddleware, jobsheetRoutes);
+app.use("/api/v1/customers", authMiddleware, customerRoutes);
+app.use("/api/v1/company", authMiddleware, companyRoutes);
+app.use("/api/v1/appointments", authMiddleware, appointmentRoutes);
+app.use("/api/v1/quotations", authMiddleware, quotationRoutes);
+app.use("/api/v1/partstocks", authMiddleware, partstockRoutes);
+app.use("/api/v1/reports", authMiddleware, reportRoutes);
+
+/* =========================
+   HEALTH CHECK
+========================= */
+app.get("/", (req, res) => {
+  res.json({ status: "API running 🚀" });
+});
+
+/* =========================
+   LOCAL ONLY
+========================= */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} (${process.env.NODE_ENV})`);
+});
+
+export default app;

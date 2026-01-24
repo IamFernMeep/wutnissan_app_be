@@ -4,7 +4,8 @@ import {
     getJobsheetById,
     createJobsheet,
     updateJobsheet,
-    deleteJobsheet
+    deleteJobsheet,
+    updateJobsheetStatus
 } from "../controllers/jobsheet.controller.js";
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const router = express.Router();
 router.get("/", getListJobsheet);
 router.get("/:id", getJobsheetById);
 router.post("/", createJobsheet);
+router.patch("/:id/status", updateJobsheetStatus);
 router.patch("/:id", updateJobsheet);
 router.delete("/:id", deleteJobsheet);
 

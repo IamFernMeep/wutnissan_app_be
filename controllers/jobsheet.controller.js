@@ -71,3 +71,44 @@ export async function deleteJobsheet(req, res) {
         return res.status(500).json({ code: 500, message: err.message, data: [] });
     }
 }
+
+// PATCH /api/v1/jobsheets/:id/status
+export async function updateJobsheetStatus(req, res) {
+    try {
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({
+                code: 400,
+                message: "status is required",
+                data: []
+            });
+        }
+
+        const updated = await Jobsheet.updateStatusByIdOrJobId(
+            req.params.id,
+            status
+        );
+
+        if (!updated) {
+            return res.status(404).json({
+                code: 404,
+                message: "Jobsheet not found",
+                data: []
+            });
+        }
+
+        return res.status(200).json({
+            code: 200,
+            message: "success",
+            data: updated
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            code: 500,
+            message: err.message,
+            data: []
+        });
+    }
+}

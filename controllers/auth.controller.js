@@ -1,38 +1,56 @@
 // controllers/auth.controller.js
-import jwt from 'jsonwebtoken';
-import { User } from '../models/user.model.js';
+import pool from "../config/db.js";
+import jwt from "jsonwebtoken";
 
-export async function login(req, res) {
+export const login = async (req, res) => {
+    const { username, password } = req.body;
+
     try {
-        const { username, password } = req.body;
-        const user = await User.findByUsername(username);
+        const [rows] = await pool.query(
+            `
+      SELECT id, username, password_hash, role, is_active
+      FROM users
+      WHERE username = ?
+      LIMIT 1
+      `,
+            [username]
+        );
 
-        if (!user || user.password !== password) {
-            return res.status(401).json({
-                code: 401,
-                message: "Invalid username or password",
-                data: []
-            });
+        if (rows.length === 0) {
+            return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // สร้าง JWT พร้อม role
+        const user = rows[0];
+
+        // ❌ user ถูก disable
+        if (user.is_active !== 1) {
+            return res.status(403).json({ message: "User is inactive" });
+        }
+
+        // ✅ เปรียบเทียบกับ password_hash ตรง ๆ
+        if (password !== user.password_hash) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role },
+            {
+                id: user.id,
+                role: user.role
+            },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        res.status(200).json({
-            code: 200,
-            message: "Login successful",
-            data: {
-                token,
-                role: user.role,
-                username: user.username
+        return res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role
             }
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ code: 500, message: err.message, data: [] });
+        console.error("LOGIN ERROR:", err);
+        return res.status(500).json({ message: "Server error" });
     }
-}
+};

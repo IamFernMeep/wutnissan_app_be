@@ -1,5 +1,5 @@
 // models/appointment.model.js
-import connectDB from "../config/db.js";
+import pool from "../config/db.js";
 
 // แปลง row DB เป็น DTO สำหรับ FE
 function toAppointmentDTO(row) {
@@ -24,34 +24,27 @@ function formatDeliveryDate(input) {
 }
 
 export const Appointment = {
-    // GET list
     findAll: async () => {
-        const conn = await connectDB();
-        const [rows] = await conn.execute(
+        const [rows] = await pool.execute(
             `SELECT id, customer_name, customer_phone, issue, delivery_date
-             FROM appointments
-             ORDER BY delivery_date ASC, created_at DESC`
+       FROM appointments
+       ORDER BY delivery_date ASC, created_at DESC`
         );
         return rows.map(toAppointmentDTO);
     },
 
-    // GET by id
     findById: async (id) => {
-        const conn = await connectDB();
-        const [rows] = await conn.execute(
+        const [rows] = await pool.execute(
             `SELECT id, customer_name, customer_phone, issue, delivery_date
-             FROM appointments
-             WHERE id = ?
-             LIMIT 1`,
+       FROM appointments
+       WHERE id = ?
+       LIMIT 1`,
             [id]
         );
         return rows.length ? toAppointmentDTO(rows[0]) : null;
     },
 
-    // CREATE
     create: async (data = {}) => {
-        const conn = await connectDB();
-
         const payload = {
             name: data.name?.trim(),
             phone: data.phone ?? null,
@@ -61,33 +54,24 @@ export const Appointment = {
 
         if (!payload.name) throw Object.assign(new Error("name is required"), { statusCode: 400 });
         if (!payload.issue) throw Object.assign(new Error("issue is required"), { statusCode: 400 });
-        if (!payload.deliveryDate) throw Object.assign(new Error("deliveryDate is required (YYYY-MM-DD HH:mm:ss)"), { statusCode: 400 });
+        if (!payload.deliveryDate) throw Object.assign(new Error("deliveryDate is required"), { statusCode: 400 });
 
-        const [result] = await conn.execute(
+        const [result] = await pool.execute(
             `INSERT INTO appointments
-             (customer_name, customer_phone, issue, delivery_date)
-             VALUES (?, ?, ?, ?)`,
-            [
-                payload.name,
-                payload.phone,
-                payload.issue,
-                payload.deliveryDate
-            ]
+       (customer_name, customer_phone, issue, delivery_date)
+       VALUES (?, ?, ?, ?)`,
+            [payload.name, payload.phone, payload.issue, payload.deliveryDate]
         );
 
-        return await Appointment.findById(result.insertId);
+        return Appointment.findById(result.insertId);
     },
 
-    // UPDATE
     updateById: async (id, data = {}) => {
-        const conn = await connectDB();
-
-        // เช็คว่ามี row หรือไม่
-        const [rows] = await conn.execute(
-            `SELECT id, customer_name, customer_phone, issue, delivery_date
-             FROM appointments
-             WHERE id = ?
-             LIMIT 1`,
+        const [rows] = await pool.execute(
+            `SELECT customer_name, customer_phone, issue, delivery_date
+       FROM appointments
+       WHERE id = ?
+       LIMIT 1`,
             [id]
         );
         if (!rows.length) return null;
@@ -97,35 +81,31 @@ export const Appointment = {
         const nextName = data.name !== undefined ? String(data.name).trim() : current.customer_name;
         const nextPhone = data.phone !== undefined ? data.phone : current.customer_phone;
         const nextIssue = data.issue !== undefined ? String(data.issue).trim() : current.issue;
-        const nextDeliveryDate = data.deliveryDate !== undefined ? data.deliveryDate.replace('T', ' ') + ':00' : current.delivery_date;
+        const nextDeliveryDate =
+            data.deliveryDate !== undefined
+                ? formatDeliveryDate(data.deliveryDate)
+                : current.delivery_date;
 
         if (!nextName) throw Object.assign(new Error("name is required"), { statusCode: 400 });
         if (!nextIssue) throw Object.assign(new Error("issue is required"), { statusCode: 400 });
-        if (!nextDeliveryDate) throw Object.assign(new Error("deliveryDate is required (YYYY-MM-DD HH:mm:ss)"), { statusCode: 400 });
+        if (!nextDeliveryDate) throw Object.assign(new Error("deliveryDate is required"), { statusCode: 400 });
 
-        const [result] = await conn.execute(
+        await pool.execute(
             `UPDATE appointments
-             SET customer_name = ?, customer_phone = ?, issue = ?, delivery_date = ?
-             WHERE id = ?`,
-            [
-                nextName,
-                nextPhone,
-                nextIssue,
-                nextDeliveryDate,
-                id
-            ]
+       SET customer_name = ?, customer_phone = ?, issue = ?, delivery_date = ?
+       WHERE id = ?`,
+            [nextName, nextPhone, nextIssue, nextDeliveryDate, id]
         );
 
-        return await Appointment.findById(id);
+        return Appointment.findById(id);
     },
 
-    // DELETE
     deleteById: async (id) => {
-        const conn = await connectDB();
-        const [result] = await conn.execute(
+        const [result] = await pool.execute(
             `DELETE FROM appointments WHERE id = ?`,
             [id]
         );
         return result.affectedRows > 0;
     }
 };
+
