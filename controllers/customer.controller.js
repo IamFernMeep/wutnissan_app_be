@@ -41,32 +41,70 @@ export async function getCustomerById(req, res) {
 }
 
 // POST /api/v1/customers
-export async function createCustomer(req, res) {
+export const createCustomer = async (req, res, next) => {
   try {
-    const newCustomer = await Customer.create(req.body);
-    return res.status(201).json({ code: 201, message: "success", data: newCustomer });
+    const imageUrl = req.file
+      ? `/uploads/cars/${req.file.filename}`
+      : null;
+
+    const data = {
+      name: req.body.name,
+      phone: req.body.phone,
+      line: req.body.line,
+      address: {
+        addressDetail: req.body.addressDetail,
+        province_id: req.body.provinceId,
+        district_id: req.body.districtId,
+        subdistrict_id: req.body.subdistrictId
+      },
+      car: {
+        registration: req.body.carRegistration,
+        model: req.body.carModel,
+        color: req.body.carColor,
+        chassisNumber: req.body.carChassis,
+        mileage: Number(req.body.carMileage),
+        imageUrl
+      }
+    };
+
+    const result = await Customer.create(data);
+    res.json({ code: 200, message: "success", data: result });
   } catch (err) {
-    const status = err.statusCode || 400;
-    return res.status(status).json({ code: status, message: err.message, data: [] });
+    next(err);
   }
-}
+};
 
 // PATCH /api/v1/customers/:id
-export async function updateCustomer(req, res) {
-  const id = parseId(req.params.id);
-  if (!id) return res.status(400).json({ code: 400, message: "Invalid customer id", data: [] });
-
+export const updateCustomer = async (req, res, next) => {
   try {
-    const updatedCustomer = await Customer.updateById(id, req.body);
+    const imageUrl = req.file
+      ? `/uploads/cars/${req.file.filename}`
+      : undefined;
 
-    if (!updatedCustomer) {
-      return res.status(404).json({ code: 404, message: "Customer not found", data: [] });
-    }
+    const data = {
+      name: req.body.name,
+      phone: req.body.phone,
+      line: req.body.line,
+      address: {
+        addressDetail: req.body.addressDetail,
+        province_id: req.body.provinceId,
+        district_id: req.body.districtId,
+        subdistrict_id: req.body.subdistrictId
+      },
+      car: {
+        registration: req.body.carRegistration,
+        model: req.body.carModel,
+        color: req.body.carColor,
+        chassisNumber: req.body.carChassis,
+        mileage: Number(req.body.carMileage),
+        ...(imageUrl && { imageUrl })
+      }
+    };
 
-    return res.status(200).json({ code: 200, message: "success", data: updatedCustomer });
+    const result = await Customer.updateById(req.params.id, data);
+    res.json({ code: 200, message: "success", data: result });
   } catch (err) {
-    const status = err.statusCode || 400;
-    return res.status(status).json({ code: status, message: err.message, data: [] });
+    next(err);
   }
 }
 

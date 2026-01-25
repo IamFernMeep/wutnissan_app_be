@@ -52,24 +52,35 @@ export const PartStock = {
     // =========================
     create: async (data = {}) => {
 
-        if (!data.part_code || !data.name || data.cost == null || data.price == null) {
-            const err = new Error("part_code, name, cost, and price are required");
+        if (!data.name || data.price == null) {
+            const err = new Error("name and price are required");
             err.statusCode = 400;
             throw err;
         }
 
+        const cost = data.cost ?? 0;
+
+        // 1️⃣ insert ก่อน (ยังไม่รู้ code)
         const [result] = await pool.execute(
             `INSERT INTO partstock
-             (part_code, item_name, cost_price, selling_price, stock_quantity, unit, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+         (part_code, item_name, cost_price, selling_price, stock_quantity, unit, created_at)
+         VALUES ('TEMP', ?, ?, ?, ?, ?, NOW())`,
             [
-                data.part_code,
                 data.name,
-                data.cost,
+                cost,
                 data.price,
                 data.stock_quantity ?? 0,
                 data.unit ?? null
             ]
+        );
+
+        // 2️⃣ gen ps-XXX จาก id
+        const partCode = `ps-${String(result.insertId).padStart(3, "0")}`;
+
+        // 3️⃣ update code
+        await pool.execute(
+            `UPDATE partstock SET part_code = ? WHERE id = ?`,
+            [partCode, result.insertId]
         );
 
         return PartStock.findById(result.insertId);

@@ -33,8 +33,10 @@ export const Customer = {
       customers.map(async (c) => {
         const [cars] = await pool.execute(
           `SELECT id, registration, model, color,
-                  chassis_number AS chassisNumber, mileage
-           FROM cars
+                chassis_number AS chassisNumber,
+                mileage,
+                image_url AS imageUrl
+          FROM cars
            WHERE customer_id = ?`,
           [c.customer_id]
         );
@@ -69,6 +71,15 @@ export const Customer = {
       throw err;
     }
 
+    const address = data.address || {};
+
+    const provinceId =
+      address.province?.id ?? address.province_id ?? null;
+    const districtId =
+      address.district?.id ?? address.district_id ?? null;
+    const subdistrictId =
+      address.subdistrict?.id ?? address.subdistrict_id ?? null;
+
     const [result] = await pool.execute(
       `INSERT INTO customers
        (name, phone, line, address_detail, province_id, district_id, subdistrict_id)
@@ -77,31 +88,38 @@ export const Customer = {
         data.name,
         data.phone ?? null,
         data.line ?? null,
-        data.address?.addressDetail ?? null,
-        data.address?.province_id,
-        data.address?.district_id,
-        data.address?.subdistrict_id
+        address.addressDetail ?? null,
+        provinceId,
+        districtId,
+        subdistrictId
       ]
     );
 
     const customerId = result.insertId;
 
+    // รองรับ car เป็น object หรือ array
+    let cars = [];
     if (Array.isArray(data.car)) {
-      for (const car of data.car) {
-        await pool.execute(
-          `INSERT INTO cars
-           (customer_id, registration, model, color, chassis_number, mileage)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            customerId,
-            car.registration,
-            car.model ?? null,
-            car.color ?? null,
-            car.chassisNumber ?? null,
-            car.mileage ?? null
-          ]
-        );
-      }
+      cars = data.car;
+    } else if (data.car && typeof data.car === "object") {
+      cars = [data.car];
+    }
+
+    for (const car of cars) {
+      await pool.execute(
+        `INSERT INTO cars
+        (customer_id, registration, model, color, chassis_number, mileage, image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          customerId,
+          car.registration,
+          car.model ?? null,
+          car.color ?? null,
+          car.chassisNumber ?? null,
+          car.mileage ?? null,
+          car.imageUrl ?? null
+        ]
+      );
     }
 
     return Customer.findById(customerId);
@@ -143,8 +161,10 @@ export const Customer = {
 
     const [cars] = await pool.execute(
       `SELECT id, registration, model, color,
-              chassis_number AS chassisNumber, mileage
-       FROM cars
+        chassis_number AS chassisNumber,
+        mileage,
+        image_url AS imageUrl
+        FROM cars
        WHERE customer_id = ?`,
       [id]
     );
@@ -176,6 +196,7 @@ export const Customer = {
     if (!rows.length) return null;
 
     const current = rows[0];
+    const address = data.address || {};
 
     await pool.execute(
       `UPDATE customers
@@ -185,29 +206,38 @@ export const Customer = {
         data.name ?? current.name,
         data.phone ?? current.phone,
         data.line ?? current.line,
-        data.address?.addressDetail ?? current.address_detail,
-        data.address?.province?.id ?? data.address?.province_id ?? current.province_id,
-        data.address?.district?.id ?? data.address?.district_id ?? current.district_id,
-        data.address?.subdistrict?.id ?? data.address?.subdistrict_id ?? current.subdistrict_id,
+        address.addressDetail ?? current.address_detail,
+        address.province?.id ?? address.province_id ?? current.province_id,
+        address.district?.id ?? address.district_id ?? current.district_id,
+        address.subdistrict?.id ?? address.subdistrict_id ?? current.subdistrict_id,
         id
       ]
     );
 
+    // รองรับ car object / array
+    let cars = [];
     if (Array.isArray(data.car)) {
+      cars = data.car;
+    } else if (data.car && typeof data.car === "object") {
+      cars = [data.car];
+    }
+
+    if (cars.length) {
       await pool.execute(`DELETE FROM cars WHERE customer_id = ?`, [id]);
 
-      for (const car of data.car) {
+      for (const car of cars) {
         await pool.execute(
           `INSERT INTO cars
-           (customer_id, registration, model, color, chassis_number, mileage)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          (customer_id, registration, model, color, chassis_number, mileage, image_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             car.registration,
             car.model ?? null,
             car.color ?? null,
             car.chassisNumber ?? null,
-            car.mileage ?? null
+            car.mileage ?? null,
+            car.imageUrl ?? null
           ]
         );
       }
