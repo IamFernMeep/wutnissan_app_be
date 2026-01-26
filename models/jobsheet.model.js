@@ -60,7 +60,8 @@ async function toListDTO(row) {
             : row.due_date
                 ? new Date(row.due_date).toISOString()
                 : null,
-        total: row.final_total ?? 0
+        total: row.final_total ?? 0,
+        remark: row.remark ?? null
     };
 }
 
@@ -83,6 +84,7 @@ async function toDetailDTO(row) {
         name: customer?.name ?? row.customer_name,
         phone: customer?.phone ?? row.customer_phone,
         car: cars.length === 1 ? cars[0] : cars,
+        remark: row.remark ?? null,
         parts,
         allTotal: row.all_total ?? 0,
         costs: row.costs ?? 0,
@@ -103,9 +105,9 @@ export const Jobsheet = {
     findAll: async () => {
         const [rows] = await pool.execute(
             `SELECT id, job_id, customer_id, customer_name,
-                    status, due_date, pickup_datetime, final_total
-             FROM jobsheets
-             ORDER BY created_at DESC`
+                status, due_date, pickup_datetime, final_total, remark
+            FROM jobsheets
+            ORDER BY created_at DESC`
         );
 
         const result = [];
@@ -152,15 +154,13 @@ export const Jobsheet = {
         const conn = await pool.getConnection();
         try {
             await conn.beginTransaction();
-
-            // ✅ สำคัญมาก: ส่ง conn เข้าไป
             const jobId = await generateJobId(conn);
-
             const payload = {
                 jobId,
                 customerId: data.customerId,
                 customerName: customer.name,
                 customerPhone: customer.phone ?? null,
+                remark: data.remark ?? null,
                 allTotal: Number(data.allTotal ?? 0),
                 costs: Number(data.costs ?? 0),
                 finalTotal: Number(data.finalTotal ?? 0),
@@ -171,14 +171,15 @@ export const Jobsheet = {
 
             const [result] = await conn.execute(
                 `INSERT INTO jobsheets
-             (job_id, customer_id, customer_name, customer_phone,
-              all_total, costs, final_total, status, due_date, pickup_datetime)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (job_id, customer_id, customer_name, customer_phone,
+                remark, all_total, costs, final_total, status, due_date, pickup_datetime)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     payload.jobId,
                     payload.customerId,
                     payload.customerName,
                     payload.customerPhone,
+                    payload.remark,
                     payload.allTotal,
                     payload.costs,
                     payload.finalTotal,
@@ -204,6 +205,7 @@ export const Jobsheet = {
                 name: customer.name,
                 phone: customer.phone ?? null,
                 car: customer.car ?? null,
+                remark: payload.remark,
                 parts,
                 allTotal: payload.allTotal,
                 costs: payload.costs,
@@ -211,7 +213,6 @@ export const Jobsheet = {
                 pickupDateTime: payload.pickupDateTime,
                 createdAt: new Date().toISOString()
             };
-
         } catch (err) {
             await conn.rollback();
             throw err;
@@ -235,18 +236,20 @@ export const Jobsheet = {
 
             await conn.execute(
                 `UPDATE jobsheets
-                 SET all_total = ?,
-                     costs = ?,
-                     final_total = ?,
-                     pickup_datetime = ?,
-                     status = COALESCE(?, status),
-                     due_date = COALESCE(?, due_date)
-                 WHERE ${isNumber ? "id = ?" : "job_id = ?"}`,
+                SET all_total = ?,
+                    costs = ?,
+                    final_total = ?,
+                    pickup_datetime = ?,
+                    remark = ?,               
+                    status = COALESCE(?, status),
+                    due_date = COALESCE(?, due_date)
+                WHERE ${isNumber ? "id = ?" : "job_id = ?"}`,
                 [
                     data.allTotal ?? current.allTotal,
                     data.costs ?? current.costs,
                     data.finalTotal ?? current.finalTotal,
                     data.pickupDateTime ?? current.pickupDateTime,
+                    data.remark ?? current.remark,
                     data.status ?? null,
                     data.dueDate ?? null,
                     idOrJobId
@@ -327,6 +330,7 @@ export const Jobsheet = {
             due_date,
             pickup_datetime,
             final_total,
+            remark,        
             CASE
                 WHEN TRIM(status) = 'เสร็จสิ้น' THEN 1
                 ELSE 0
@@ -351,7 +355,7 @@ export const Jobsheet = {
 
         const result = [];
         for (const row of rows) {
-            result.push(await toListDTO(row)); // 👈 สำคัญ
+            result.push(await toListDTO(row));
         }
 
         return {

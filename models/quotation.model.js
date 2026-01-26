@@ -16,13 +16,27 @@ async function toDTO(row) {
         customerId: String(row.customer_id),
         carId: row.car_id ? String(row.car_id) : null,
         billNo: row.bill_no,
+
         name: customer?.name ?? row.customer_name,
         phone: customer?.phone ?? row.customer_phone,
+        remark: row.remark ?? null,
+
+        address: customer?.address
+            ? {
+                addressDetail: customer.address.addressDetail,
+                province: customer.address.province,
+                district: customer.address.district,
+                subdistrict: customer.address.subdistrict,
+                postalCode: customer.address.postalCode
+            }
+            : null,
+
         car,
         parts,
-        allTotal: Number(row.all_total || 0),
-        costs: Number(row.costs || 0),
-        finalTotal: Number(row.final_total || 0),
+
+        allTotal: Number(row.all_total ?? 0),
+        costs: Number(row.costs ?? 0),
+        finalTotal: Number(row.final_total ?? 0),
 
         pickupDateTime: row.pickup_datetime
             ? new Date(row.pickup_datetime).toISOString()
@@ -73,29 +87,20 @@ export const Quotation = {
     ========================= */
     create: async (data = {}) => {
         if (!data.customerId) {
-            throw Object.assign(new Error("customerId is required"), {
-                statusCode: 400
-            });
+            throw Object.assign(new Error("customerId is required"), { statusCode: 400 });
         }
-
         if (!data.carId) {
-            throw Object.assign(new Error("carId is required"), {
-                statusCode: 400
-            });
+            throw Object.assign(new Error("carId is required"), { statusCode: 400 });
         }
 
         const customer = await Customer.findById(data.customerId);
         if (!customer) {
-            throw Object.assign(new Error("Customer not found"), {
-                statusCode: 404
-            });
+            throw Object.assign(new Error("Customer not found"), { statusCode: 404 });
         }
 
         const car = await Car.findById(data.carId);
         if (!car) {
-            throw Object.assign(new Error("Car not found"), {
-                statusCode: 404
-            });
+            throw Object.assign(new Error("Car not found"), { statusCode: 404 });
         }
 
         // ===== generate bill no =====
@@ -119,28 +124,27 @@ export const Quotation = {
 
         // ===== คำนวณยอด =====
         const parts = Array.isArray(data.parts) ? data.parts : [];
-
         const allTotal = parts.reduce(
-            (sum, p) =>
-                sum + Number(p.total || (p.qty * p.price) || 0),
+            (sum, p) => sum + Number(p.total ?? (p.qty * p.price) ?? 0),
             0
         );
 
-        const costs = Number(data.costs || 0);
+        const costs = Number(data.costs ?? 0);
         const finalTotal = allTotal + costs;
 
         // ===== insert quotation =====
         const [result] = await pool.execute(
             `INSERT INTO quotations
              (bill_no, customer_id, car_id, customer_name, customer_phone,
-              pickup_datetime, all_total, costs, final_total, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+              remark, pickup_datetime, all_total, costs, final_total, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
             [
                 billNo,
                 data.customerId,
                 data.carId,
                 customer.name,
                 customer.phone ?? null,
+                data.remark ?? null,
                 data.pickupDateTime ?? null,
                 allTotal,
                 costs,
@@ -150,7 +154,6 @@ export const Quotation = {
 
         const quotationId = result.insertId;
 
-        // ===== insert parts =====
         for (const part of parts) {
             await QuotationPart.create(quotationId, part);
         }
@@ -168,8 +171,7 @@ export const Quotation = {
         const parts = Array.isArray(data.parts) ? data.parts : current.parts;
 
         const allTotal = parts.reduce(
-            (sum, p) =>
-                sum + Number(p.total || (p.qty * p.price) || 0),
+            (sum, p) => sum + Number(p.total ?? (p.qty * p.price) ?? 0),
             0
         );
 
@@ -180,10 +182,15 @@ export const Quotation = {
 
         await pool.execute(
             `UPDATE quotations
-             SET pickup_datetime = ?, all_total = ?, costs = ?, final_total = ?
+             SET pickup_datetime = ?,
+                 remark = ?,
+                 all_total = ?,
+                 costs = ?,
+                 final_total = ?
              WHERE ${isId ? "id = ?" : "bill_no = ?"}`,
             [
                 data.pickupDateTime ?? current.pickupDateTime,
+                data.remark ?? current.remark,
                 allTotal,
                 costs,
                 finalTotal,
