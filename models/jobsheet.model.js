@@ -53,6 +53,17 @@ async function toListDTO(row) {
     return {
         jobId: row.job_id,
         customer: customer?.name ?? row.customer_name,
+
+        address: customer?.address
+            ? {
+                addressDetail: customer.address.addressDetail,
+                province: customer.address.province,
+                district: customer.address.district,
+                subdistrict: customer.address.subdistrict,
+                postalCode: customer.address.postalCode
+            }
+            : null,
+
         car: cars.length === 1 ? cars[0] : cars,
         status: row.status,
         dueDate: row.pickup_datetime
@@ -81,18 +92,33 @@ async function toDetailDTO(row) {
     return {
         _id: String(row.id),
         jobId: row.job_id,
+
         name: customer?.name ?? row.customer_name,
         phone: customer?.phone ?? row.customer_phone,
+
+        address: customer?.address
+            ? {
+                addressDetail: customer.address.addressDetail,
+                province: customer.address.province,
+                district: customer.address.district,
+                subdistrict: customer.address.subdistrict,
+                postalCode: customer.address.postalCode
+            }
+            : null,
+
         car: cars.length === 1 ? cars[0] : cars,
         remark: row.remark ?? null,
         parts,
+
         allTotal: row.all_total ?? 0,
         costs: row.costs ?? 0,
         finalTotal: row.final_total ?? 0,
+
         pickupDateTime: row.pickup_datetime ?? null,
         createdAt: new Date(row.created_at).toISOString()
     };
 }
+
 
 // =========================
 // Jobsheet Model
@@ -204,6 +230,17 @@ export const Jobsheet = {
                 jobId: payload.jobId,
                 name: customer.name,
                 phone: customer.phone ?? null,
+
+                address: customer.address
+                    ? {
+                        addressDetail: customer.address.addressDetail,
+                        province: customer.address.province,
+                        district: customer.address.district,
+                        subdistrict: customer.address.subdistrict,
+                        postalCode: customer.address.postalCode
+                    }
+                    : null,
+
                 car: customer.car ?? null,
                 remark: payload.remark,
                 parts,
