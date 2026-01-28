@@ -22,14 +22,14 @@ const app = express();
    CORS
 ========================= */
 app.use(cors({
-  origin: [
-    "http://localhost:4200",
-    "https://wutnissandatagarage.com",
-    "https://www.wutnissandatagarage.com",
-    "https://api.wutnissandatagarage.com",
-    "https://api-dev.wutnissandatagarage.com"
-  ],
-  credentials: true
+   origin: [
+      "http://localhost:4200",
+      "https://wutnissandatagarage.com",
+      "https://www.wutnissandatagarage.com",
+      "https://api.wutnissandatagarage.com",
+      "https://api-dev.wutnissandatagarage.com"
+   ],
+   credentials: true
 }));
 
 /* =========================
@@ -40,10 +40,12 @@ app.use(express.json());
 /* =========================
    STATIC UPLOADS
 ========================= */
-app.use(
-  "/uploads",
-  express.static("/home/wutnissa/domains/api-dev.wutnissandatagarage.com/uploads")
-);
+const uploadPath =
+   process.env.NODE_ENV === "production"
+      ? "/home/wutnissa/domains/api.wutnissandatagarage.com/uploads"
+      : "/home/wutnissa/domains/api-dev.wutnissandatagarage.com/uploads";
+
+app.use("/uploads", express.static(uploadPath));
 
 /* =========================
    PUBLIC ROUTES
@@ -66,10 +68,10 @@ app.use("/api/v1/reports", authMiddleware, reportRoutes);
    HEALTH CHECK
 ========================= */
 app.get("/", (req, res) => {
-  res.json({ status: "API running 🚀" });
+   res.json({ status: "API running 🚀" });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+   console.log(`🚀 Server running on port ${PORT}`);
 });

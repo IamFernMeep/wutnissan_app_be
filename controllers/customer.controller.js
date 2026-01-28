@@ -77,9 +77,19 @@ export const createCustomer = async (req, res, next) => {
 // PATCH /api/v1/customers/:id
 export const updateCustomer = async (req, res, next) => {
   try {
-    const imageUrl = req.file
-      ? `/uploads/cars/${req.file.filename}`
-      : undefined;
+    const removeCarImage = req.body.removeCarImage === "1";
+
+    let imageUrl;
+
+    // 1️⃣ upload รูปใหม่
+    if (req.file) {
+      imageUrl = `/uploads/cars/${req.file.filename}`;
+    }
+
+    // 2️⃣ ลบรูป
+    if (removeCarImage) {
+      imageUrl = null;
+    }
 
     const data = {
       name: req.body.name,
@@ -97,16 +107,23 @@ export const updateCustomer = async (req, res, next) => {
         color: req.body.carColor,
         chassisNumber: req.body.carChassis,
         mileage: Number(req.body.carMileage),
-        ...(imageUrl && { imageUrl })
+        // ⭐ จุดสำคัญ
+        ...(imageUrl !== undefined && { imageUrl })
       }
     };
 
     const result = await Customer.updateById(req.params.id, data);
-    res.json({ code: 200, message: "success", data: result });
+
+    res.json({
+      code: 200,
+      message: "success",
+      data: result
+    });
   } catch (err) {
     next(err);
   }
-}
+};
+
 
 // DELETE /api/v1/customers/:id
 export async function deleteCustomer(req, res) {

@@ -186,64 +186,123 @@ export const Customer = {
   },
 
   // =========================
-  // Update By ID
+  // Update By ID (FormData-friendly)
   // =========================
+  // models/customer.model.js
   updateById: async (id, data = {}) => {
-    const [rows] = await pool.execute(
-      `SELECT * FROM customers WHERE id = ?`,
-      [id]
-    );
-    if (!rows.length) return null;
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    const current = rows[0];
-    const address = data.address || {};
+      // 1. load customer
+      const [rows] = await conn.execute(
+        `SELECT * FROM customers WHERE id = ?`,
+        [id]
+      );
+      if (!rows.length) {
+        await conn.rollback();
+        return null;
+      }
 
-    await pool.execute(
-      `UPDATE customers
-       SET name = ?, phone = ?, line = ?, address_detail = ?, province_id = ?, district_id = ?, subdistrict_id = ?
+      const current = rows[0];
+
+      // 2. update customer
+      await conn.execute(
+        `UPDATE customers
+       SET name = ?, phone = ?, line = ?, address_detail = ?,
+           province_id = ?, district_id = ?, subdistrict_id = ?
        WHERE id = ?`,
-      [
-        data.name ?? current.name,
-        data.phone ?? current.phone,
-        data.line ?? current.line,
-        address.addressDetail ?? current.address_detail,
-        address.province?.id ?? address.province_id ?? current.province_id,
-        address.district?.id ?? address.district_id ?? current.district_id,
-        address.subdistrict?.id ?? address.subdistrict_id ?? current.subdistrict_id,
-        id
-      ]
-    );
+        [
+          data.name ?? current.name,
+          data.phone ?? current.phone,
+          data.line ?? current.line,
+          data.address?.addressDetail ?? current.address_detail,
+          data.address?.province_id ?? current.province_id,
+          data.address?.district_id ?? current.district_id,
+          data.address?.subdistrict_id ?? current.subdistrict_id,
+          id
+        ]
+      );
 
-    // รองรับ car object / array
-    let cars = [];
-    if (Array.isArray(data.car)) {
-      cars = data.car;
-    } else if (data.car && typeof data.car === "object") {
-      cars = [data.car];
-    }
+      // 3. load car
+      const [cars] = await conn.execute(
+        `SELECT * FROM cars WHERE customer_id = ? LIMIT 1`,
+        [id]
+      );
+      const currentCar = cars[0];
 
-    if (cars.length) {
-      await pool.execute(`DELETE FROM cars WHERE customer_id = ?`, [id]);
+      // 4. ถ้าไม่มีข้อมูลรถ → ข้าม
+      if (!data.car && !currentCar) {
+        await conn.commit();
+        return Customer.findById(id);
+      }
 
-      for (const car of cars) {
-        await pool.execute(
+      // ❗ registration ห้าม null
+      const registration =
+        data.car?.registration ?? currentCar?.registration;
+
+      if (!registration) {
+        throw new Error("car.registration is required");
+      }
+
+      // 5. update car
+      // 5. update car
+      if (currentCar) {
+
+        // ⭐ FIX image_url logic
+        let imageUrl = currentCar.image_url;
+
+        if (data.car && Object.prototype.hasOwnProperty.call(data.car, "imageUrl")) {
+          // imageUrl อาจเป็น string หรือ null
+          imageUrl = data.car.imageUrl;
+        }
+
+        await conn.execute(
+          `UPDATE cars
+     SET registration = ?, model = ?, color = ?,
+         chassis_number = ?, mileage = ?, image_url = ?
+     WHERE customer_id = ?`,
+          [
+            registration,
+            data.car?.model ?? currentCar.model,
+            data.car?.color ?? currentCar.color,
+            data.car?.chassisNumber ?? currentCar.chassis_number,
+            Number.isFinite(data.car?.mileage)
+              ? data.car.mileage
+              : currentCar.mileage,
+            imageUrl, // ✅ สำคัญมาก
+            id
+          ]
+        );
+
+      } else {
+        // fallback insert (ไม่ต้องแก้)
+        await conn.execute(
           `INSERT INTO cars
-          (customer_id, registration, model, color, chassis_number, mileage, image_url)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     (customer_id, registration, model, color, chassis_number, mileage, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
-            car.registration,
-            car.model ?? null,
-            car.color ?? null,
-            car.chassisNumber ?? null,
-            car.mileage ?? null,
-            car.imageUrl ?? null
+            registration,
+            data.car?.model ?? null,
+            data.car?.color ?? null,
+            data.car?.chassisNumber ?? null,
+            data.car?.mileage ?? null,
+            data.car?.imageUrl ?? null
           ]
         );
       }
-    }
 
-    return Customer.findById(id);
+      await conn.commit();
+      return Customer.findById(id);
+
+    } catch (err) {
+      await conn.rollback();
+      console.error("UPDATE CUSTOMER ERROR:", err.message);
+      throw err;
+    } finally {
+      conn.release();
+    }
   },
 
   // =========================
