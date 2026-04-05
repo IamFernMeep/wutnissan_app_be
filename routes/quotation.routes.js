@@ -4,7 +4,8 @@ import {
     getQuatationById,
     createQuatation,
     updateQuatation,
-    deleteQuatation
+    deleteQuatation,
+    getQuotationByCustomerId
 } from "../controllers/quotation.controller.js";
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.get("/:id", getQuatationById);
 router.post("/", createQuatation);
 router.patch("/:id", updateQuatation);
 router.delete("/:id", deleteQuatation);
+router.get('/customer/:customerId', getQuotationByCustomerId);
 
 export default router;

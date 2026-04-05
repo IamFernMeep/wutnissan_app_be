@@ -218,5 +218,22 @@ export const Quotation = {
             [idOrBillNo]
         );
         return result.affectedRows > 0;
-    }
+    },
+
+    /* =========================
+       Find By Customer
+    ========================= */
+    findByCustomerId: async (customerId) => {
+        const [rows] = await pool.execute(
+            `SELECT * FROM quotations WHERE customer_id = ? ORDER BY created_at DESC`,
+            [customerId]
+        );
+
+        const result = [];
+        for (const row of rows) {
+            result.push(await toDTO(row));
+        }
+
+        return result;
+    },
 };

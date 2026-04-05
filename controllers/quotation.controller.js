@@ -71,3 +71,22 @@ export async function deleteQuatation(req, res) {
         return res.status(500).json({ code: 500, message: err.message, data: [] });
     }
 }
+
+// GET /api/v1/quotation/customer/:customerId
+export async function getQuotationByCustomerId(req, res) {
+    try {
+        const list = await Quotation.findByCustomerId(req.params.customerId);
+
+        return res.status(200).json({
+            code: 200,
+            message: "success",
+            data: list
+        });
+    } catch (err) {
+        return res.status(500).json({
+            code: 500,
+            message: err.message,
+            data: []
+        });
+    }
+}
