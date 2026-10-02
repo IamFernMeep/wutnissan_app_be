@@ -30,10 +30,21 @@ export async function getQuatationById(req, res) {
 export async function createQuatation(req, res) {
     try {
         const created = await Quotation.create(req.body);
-        return res.status(201).json({ code: 201, message: "success", data: created });
+
+        return res.status(201).json({
+            code: 201,
+            message: "success",
+            data: created
+        });
+
     } catch (err) {
-        const status = err.statusCode || 400;
-        return res.status(status).json({ code: status, message: err.message, data: [] });
+        const status = err.statusCode || 500;
+
+        return res.status(status).json({
+            code: status,
+            message: err.message,
+            data: []
+        });
     }
 }
 

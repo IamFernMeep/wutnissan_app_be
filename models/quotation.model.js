@@ -103,27 +103,10 @@ export const Quotation = {
             throw Object.assign(new Error("Car not found"), { statusCode: 404 });
         }
 
-        // ===== generate bill no =====
-        let billNo = data.billNo;
-        if (!billNo) {
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, "0");
-            const dd = String(now.getDate()).padStart(2, "0");
-            const dateStr = `${yyyy}${mm}${dd}`;
+        const parts = Array.isArray(data.parts)
+            ? data.parts
+            : [];
 
-            const [rows] = await pool.execute(
-                `SELECT COUNT(*) AS count
-                 FROM quotations
-                 WHERE DATE(created_at) = CURDATE()`
-            );
-
-            const seq = String((rows[0]?.count || 0) + 1).padStart(3, "0");
-            billNo = `QT-${dateStr}-${seq}`;
-        }
-
-        // ===== คำนวณยอด =====
-        const parts = Array.isArray(data.parts) ? data.parts : [];
         const allTotal = parts.reduce(
             (sum, p) => sum + Number(p.total ?? (p.qty * p.price) ?? 0),
             0
@@ -133,31 +116,102 @@ export const Quotation = {
         const finalTotal = allTotal + costs;
 
         // ===== insert quotation =====
-        const [result] = await pool.execute(
-            `INSERT INTO quotations
+        const connection = await pool.getConnection();
+        let billNo;
+
+        try {
+            await connection.beginTransaction();
+            billNo = data.billNo;
+
+            if (!billNo) {
+
+                const now = new Date();
+
+                const yyyy = now.getFullYear();
+
+                const mm = String(
+                    now.getMonth() + 1
+                ).padStart(2, "0");
+
+                const dd = String(
+                    now.getDate()
+                ).padStart(2, "0");
+
+                const dateStr =
+                    `${yyyy}${mm}${dd} `;
+
+                const sequenceDate =
+                    `${yyyy} -${mm} -${dd} `;
+
+                await connection.execute(
+                    `INSERT INTO quotation_sequences
+                        (sequence_date, last_number)
+                    VALUES(?, 1)
+                                        ON DUPLICATE KEY UPDATE
+                    last_number = last_number + 1`,
+                    [sequenceDate]
+                );
+
+                const [sequenceRows] =
+                    await connection.execute(
+                        `SELECT last_number
+                         FROM quotation_sequences
+                         WHERE sequence_date = ?
+                         FOR UPDATE`,
+                        [sequenceDate]
+                    );
+
+                if (!sequenceRows.length) {
+                    throw new Error(
+                        "Unable to generate quotation sequence"
+                    );
+                }
+
+                const sequence =
+                    Number(
+                        sequenceRows[0].last_number
+                    );
+
+                const seq =
+                    String(sequence).padStart(3, "0");
+
+                billNo =
+                    `QT - ${dateStr} -${seq} `;
+            }
+
+            const [result] =
+                await connection.execute(
+                    `INSERT INTO quotations
              (bill_no, customer_id, car_id, customer_name, customer_phone,
               remark, pickup_datetime, all_total, costs, final_total, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-            [
-                billNo,
-                data.customerId,
-                data.carId,
-                customer.name,
-                customer.phone ?? null,
-                data.remark ?? null,
-                data.pickupDateTime ?? null,
-                allTotal,
-                costs,
-                finalTotal
-            ]
-        );
+                    [
+                        billNo,
+                        data.customerId,
+                        data.carId,
+                        customer.name,
+                        customer.phone ?? null,
+                        data.remark ?? null,
+                        data.pickupDateTime ?? null,
+                        allTotal,
+                        costs,
+                        finalTotal
+                    ]
+                );
 
-        const quotationId = result.insertId;
+            const quotationId = result.insertId;
 
-        for (const part of parts) {
-            await QuotationPart.create(quotationId, part);
+            for (const part of parts) {
+                await QuotationPart.create(quotationId, part);
+            }
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
         }
-
         return Quotation.findByIdOrBillNo(billNo);
     },
 
