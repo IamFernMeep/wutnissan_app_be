@@ -138,16 +138,16 @@ export const Quotation = {
                 ).padStart(2, "0");
 
                 const dateStr =
-                    `${yyyy}${mm}${dd} `;
+                    `${yyyy}${mm}${dd}`;
 
                 const sequenceDate =
-                    `${yyyy} -${mm} -${dd} `;
+                    `${yyyy}-${mm}-${dd}`;
 
                 await connection.execute(
                     `INSERT INTO quotation_sequences
                         (sequence_date, last_number)
                     VALUES(?, 1)
-                                        ON DUPLICATE KEY UPDATE
+                    ON DUPLICATE KEY UPDATE
                     last_number = last_number + 1`,
                     [sequenceDate]
                 );
@@ -202,7 +202,7 @@ export const Quotation = {
             const quotationId = result.insertId;
 
             for (const part of parts) {
-                await QuotationPart.create(quotationId, part);
+                await QuotationPart.create(quotationId, part, connection);
             }
 
             await connection.commit();
@@ -253,7 +253,7 @@ export const Quotation = {
         );
 
         if (Array.isArray(data.parts)) {
-            await QuotationPart.deleteByQuotationId(current._id);
+            await QuotationPart.deleteByQuotationId(current._id, connection);
             for (const part of data.parts) {
                 await QuotationPart.create(current._id, part);
             }
